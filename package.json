@@ -57,6 +57,7 @@
     "glob-to-regexp": "0.4.1",
     "hast-util-select": "6.0.2",
     "http-proxy-agent": "7.0.0",
+    "http-proxy-middleware": "^2.0.6",
     "https-proxy-agent": "7.0.2",
     "ignore": "5.3.0",
     "ini": "4.1.1",

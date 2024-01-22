@@ -12,6 +12,7 @@
 import { promisify } from 'util';
 import path from 'path';
 import compression from 'compression';
+import { createProxyMiddleware, responseInterceptor } from 'http-proxy-middleware';
 import utils from './utils.js';
 import RequestContext from './RequestContext.js';
 import { asyncHandler, BaseServer } from './BaseServer.js';
@@ -113,12 +114,66 @@ export class HelixServer extends BaseServer {
     this.emit('request', req, res, ctx);
   }
 
+  createProxyHandlers(pathToProxy, proxyTarget) {
+    const proxyURL = new URL(proxyTarget);
+    const escapedHost = proxyURL.host.replaceAll(/\./g, '\\.');
+    console.log('>>>>', escapedHost);
+    // const proxyScheme = proxyURL.host.split('.')[0];
+    // const proxyScheme = proxyURL.split('.')[0];
+    return createProxyMiddleware(pathToProxy, {
+      target: proxyURL.origin,
+      changeOrigin: true,
+      router: {
+        [`${this.hostname}:${this.port}`]: proxyURL.origin,
+
+      },
+      secure: false,
+      logLevel: 'debug',
+      /**
+       * IMPORTANT: avoid res.end being called automatically
+       * */
+      selfHandleResponse: true, // res.end() will be called internally by responseInterceptor()
+
+      /**
+       * Intercept response and replace 'Hello' with 'Goodbye'
+       * */
+      onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
+        const location = res.getHeader('Location');
+        if (location) {
+          res.setHeader('Location', location.replace(`${proxyURL.origin}/`, `${this.scheme}://${this.hostname}:${this.port}/`));
+        }
+
+        const response = responseBuffer.toString('utf8'); // convert buffer to string
+        // Global flag required when calling replaceAll with regex
+        const regex = new RegExp(`https://${escapedHost}/`, 'gi');
+        // const regex = /https:\/\/magento2\.docker\//gi;
+        // const regex4b = new RegExp(`/https\\u003A\\u002F\\u002F/${escapedHost}\\u002F`, 'gi');
+        const regex4 = /https\\u003A\\u002F\\u002Fmagento2\.docker\\u002F/gi;
+        const regex3 = /\.magento2\.docker\//gi;
+        const regex2 = /magento2\.docker/gi;
+        return response.replace('benefits', `${this.scheme}://${this.hostname}:${this.port}/`)
+          .replaceAll(regex, `${this.scheme}://${this.hostname}:${this.port}/`)
+          .replaceAll(regex4, `${this.scheme}\u003A\u002F\u002F${this.hostname}:${this.port}\u002F`)
+          .replaceAll(regex3, `${this.hostname}:${this.port}/`)
+          .replaceAll(regex2, `${this.hostname}:${this.port}`); // manipulate response and return the result
+      }),
+    });
+  }
+
   async setupApp() {
     await super.setupApp();
     if (this._enableLiveReload) {
       this._liveReload = new LiveReload(this.log);
       await this._liveReload.init(this.app, this._server);
     }
+
+    if (this._proxyTarget) {
+      // todo: make sure there are items in this array
+      this._proxyPaths.forEach((newPath) => {
+        this.app.use(newPath, this.createProxyHandlers(newPath, this._proxyTarget));
+      });
+    }
+
     const handler = asyncHandler(this.handleProxyModeRequest.bind(this));
     this.app.get('*', handler);
     this.app.post('*', handler);

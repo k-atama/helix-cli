@@ -30,6 +30,12 @@ export default class UpCommand extends AbstractServerCommand {
     return this;
   }
 
+  withProxyConfig(paths, target) {
+    this._proxyPaths = paths;
+    this._proxyTarget = target;
+    return this;
+  }
+
   withPrintIndex(value) {
     this._printIndex = value;
     return this;
@@ -63,6 +69,7 @@ export default class UpCommand extends AbstractServerCommand {
     this._project = new HelixProject()
       .withCwd(this.directory)
       .withLiveReload(this._liveReload)
+      .withProxyConfig(this._proxyPaths, this._proxyTarget)
       .withLogger(this._logger)
       .withKill(this._kill)
       .withPrintIndex(this._printIndex);

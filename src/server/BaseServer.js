@@ -47,6 +47,8 @@ export class BaseServer extends EventEmitter {
     this._cert = '';
     this._server = null;
     this._sockets = new Set();
+    this._proxyPaths = [];
+    this._proxyTarget = null;
   }
 
   /**
@@ -81,6 +83,12 @@ export class BaseServer extends EventEmitter {
     this._scheme = 'https';
     this._key = key;
     this._cert = cert;
+    return this;
+  }
+
+  withProxyConfig(paths, target) {
+    this._proxyPaths = paths;
+    this._proxyTarget = target;
     return this;
   }
 

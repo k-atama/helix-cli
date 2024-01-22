@@ -41,6 +41,11 @@ export class HelixProject extends BaseProject {
     return this;
   }
 
+  withProxyConfig(paths, target) {
+    this._server.withProxyConfig(paths, target);
+    return this;
+  }
+
   get proxyUrl() {
     return this._proxyUrl;
   }

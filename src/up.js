@@ -91,6 +91,17 @@ export default function up() {
           describe: 'Path to local folder to cache the responses (note: this is an alpha feature, it may be removed without notice)',
           type: 'string',
         })
+        .option('proxy-paths', {
+          describe: 'Array of paths to proxy to proxy-target',
+          alias: 'proxyPaths',
+          type: 'string',
+          array: true,
+        })
+        .option('proxy-target', {
+          describe: 'Where proxy paths should be directed to',
+          alias: 'proxyTarget',
+          type: 'string',
+        })
         .group(['url', 'livereload', 'no-livereload', 'open', 'no-open', 'print-index', 'cache'], 'AEM Options')
 
         .help();
@@ -109,6 +120,7 @@ export default function up() {
         // this prevents the window to be opened during integration tests
         .withOpen(path.basename(argv.$0) === 'aem' ? argv.open : false)
         .withTLS(argv.tlsKey, argv.tlsCert)
+        .withProxyConfig(argv.proxyPaths, argv.proxyTarget)
         .withLiveReload(argv.livereload)
         .withUrl(argv.url)
         .withPrintIndex(argv.printIndex)
