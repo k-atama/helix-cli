@@ -117,7 +117,7 @@ export class HelixServer extends BaseServer {
   createProxyHandlers(pathToProxy, proxyTarget) {
     const proxyURL = new URL(proxyTarget);
     const escapedHost = proxyURL.host.replaceAll(/\./g, '\\.');
-    console.log('>>>>', escapedHost);
+    const targetProtocol = proxyURL.protocol.replace(':', '');
     // const proxyScheme = proxyURL.host.split('.')[0];
     // const proxyScheme = proxyURL.split('.')[0];
     return createProxyMiddleware(pathToProxy, {
@@ -128,7 +128,6 @@ export class HelixServer extends BaseServer {
 
       },
       secure: false,
-      logLevel: 'debug',
       /**
        * IMPORTANT: avoid res.end being called automatically
        * */
@@ -145,17 +144,12 @@ export class HelixServer extends BaseServer {
 
         const response = responseBuffer.toString('utf8'); // convert buffer to string
         // Global flag required when calling replaceAll with regex
-        const regex = new RegExp(`https://${escapedHost}/`, 'gi');
-        // const regex = /https:\/\/magento2\.docker\//gi;
-        // const regex4b = new RegExp(`/https\\u003A\\u002F\\u002F/${escapedHost}\\u002F`, 'gi');
-        const regex4 = /https\\u003A\\u002F\\u002Fmagento2\.docker\\u002F/gi;
-        const regex3 = /\.magento2\.docker\//gi;
-        const regex2 = /magento2\.docker/gi;
-        return response.replace('benefits', `${this.scheme}://${this.hostname}:${this.port}/`)
-          .replaceAll(regex, `${this.scheme}://${this.hostname}:${this.port}/`)
-          .replaceAll(regex4, `${this.scheme}\u003A\u002F\u002F${this.hostname}:${this.port}\u002F`)
-          .replaceAll(regex3, `${this.hostname}:${this.port}/`)
-          .replaceAll(regex2, `${this.hostname}:${this.port}`); // manipulate response and return the result
+        const regex = new RegExp(`${targetProtocol}://${escapedHost}/`, 'gi');
+        const regex2 = new RegExp(`${targetProtocol}\\\\u003A\\\\u002F\\\\u002F${escapedHost}\\\\u002F`, 'gi');
+        const regex3 = new RegExp(`${escapedHost}`, 'gi');
+        return response.replaceAll(regex, `${this.scheme}://${this.hostname}:${this.port}/`)
+          .replaceAll(regex2, `${this.scheme}\u003A\u002F\u002F${this.hostname}:${this.port}\u002F`)
+          .replaceAll(regex3, `${this.hostname}:${this.port}`);
       }),
     });
   }
