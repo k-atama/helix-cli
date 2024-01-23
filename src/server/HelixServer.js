@@ -142,12 +142,28 @@ export class HelixServer extends BaseServer {
           res.setHeader('Location', location.replace(`${proxyURL.origin}/`, `${this.scheme}://${this.hostname}:${this.port}/`));
         }
 
+        // replace original url in cookies for error messages
+        const setCookie = res.getHeader('Set-Cookie');
+        if (setCookie && setCookie.length > 0) {
+          const newCookie = setCookie.map((cookieValue) => cookieValue.replaceAll(
+            new RegExp(`${encodeURIComponent(proxyURL.origin.replace('://', ':\\/\\/'))}`, 'g'),
+            `${this.scheme}%3A%5C%2F%5C%2F${this.hostname}:${this.port}`,
+          ).replaceAll(
+            // todo: this should probably be removed as it doesn't account for the scheme
+            new RegExp(`${targetProtocol}://${escapedHost}/`, 'gi'),
+            `${this.scheme}://${this.hostname}:${this.port}/`,
+          ));
+          res.setHeader('Set-Cookie', newCookie);
+        }
+
         const response = responseBuffer.toString('utf8'); // convert buffer to string
         // Global flag required when calling replaceAll with regex
         const regex = new RegExp(`${targetProtocol}://${escapedHost}/`, 'gi');
+        const regex1 = new RegExp(`${targetProtocol}:\\\\/\\\\/${escapedHost}`, 'gi');
         const regex2 = new RegExp(`${targetProtocol}\\\\u003A\\\\u002F\\\\u002F${escapedHost}\\\\u002F`, 'gi');
         const regex3 = new RegExp(`${escapedHost}`, 'gi');
         return response.replaceAll(regex, `${this.scheme}://${this.hostname}:${this.port}/`)
+          .replaceAll(regex1, `${this.scheme}:\\\\/\\\\/${this.hostname}:${this.port}`)
           .replaceAll(regex2, `${this.scheme}\u003A\u002F\u002F${this.hostname}:${this.port}\u002F`)
           .replaceAll(regex3, `${this.hostname}:${this.port}`);
       }),
