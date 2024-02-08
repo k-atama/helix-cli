@@ -157,6 +157,12 @@ export class HelixServer extends BaseServer {
         }
 
         const response = responseBuffer.toString('utf8'); // convert buffer to string
+
+        const contentType = res.getHeader('Content-Type');
+        if (contentType.indexOf('application/json') === -1 && contentType.indexOf('text/html') === -1) {
+          return responseBuffer;
+        }
+
         // Global flag required when calling replaceAll with regex
         const regex = new RegExp(`${targetProtocol}://${escapedHost}/`, 'gi');
         const regex1 = new RegExp(`${targetProtocol}:\\\\/\\\\/${escapedHost}`, 'gi');
