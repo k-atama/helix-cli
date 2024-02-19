@@ -17,6 +17,7 @@ import utils from './utils.js';
 import RequestContext from './RequestContext.js';
 import { asyncHandler, BaseServer } from './BaseServer.js';
 import LiveReload from './LiveReload.js';
+import { replaceContent } from './proxy-replacer.js';
 
 export class HelixServer extends BaseServer {
   /**
@@ -168,16 +169,12 @@ export class HelixServer extends BaseServer {
         }
 
         const response = responseBuffer.toString('utf8'); // convert buffer to string
-
-        // Global flag required when calling replaceAll with regex
-        const regex = new RegExp(`${targetProtocol}://${escapedHost}/`, 'gi');
-        const regex1 = new RegExp(`${targetProtocol}:\\\\/\\\\/${escapedHost}`, 'gi');
-        const regex2 = new RegExp(`${targetProtocol}\\\\u003A\\\\u002F\\\\u002F${escapedHost}\\\\u002F`, 'gi');
-        const regex3 = new RegExp(`${escapedHost}`, 'gi');
-        return response.replaceAll(regex, `${this.scheme}://${this.hostname}:${this.port}/`)
-          .replaceAll(regex1, `${this.scheme}:\\/\\/${this.hostname}:${this.port}`)
-          .replaceAll(regex2, `${this.scheme}\u003A\u002F\u002F${this.hostname}:${this.port}\u002F`)
-          .replaceAll(regex3, `${this.hostname}:${this.port}`);
+        return replaceContent({
+          proxyTarget,
+          targetHostname: this.hostname,
+          targetPort: this.port,
+          targetScheme: this.scheme,
+        }, response);
       }),
     });
   }
