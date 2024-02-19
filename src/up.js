@@ -102,6 +102,16 @@ export default function up() {
           alias: 'proxyTarget',
           type: 'string',
         })
+        .option('proxy-auth-username', {
+          describe: 'Optional basic auth username if additional proxy server requires basic auth',
+          alias: 'proxyAuthUsername',
+          type: 'string',
+        })
+        .option('proxy-auth-password', {
+          describe: 'Optional basic auth password if additional proxy server requires basic auth',
+          alias: 'proxyAuthPassword',
+          type: 'string',
+        })
         .group(['url', 'livereload', 'no-livereload', 'open', 'no-open', 'print-index', 'cache'], 'AEM Options')
 
         .help();
@@ -120,7 +130,12 @@ export default function up() {
         // this prevents the window to be opened during integration tests
         .withOpen(path.basename(argv.$0) === 'aem' ? argv.open : false)
         .withTLS(argv.tlsKey, argv.tlsCert)
-        .withProxyConfig(argv.proxyPaths, argv.proxyTarget)
+        .withProxyConfig(
+          argv.proxyPaths,
+          argv.proxyTarget,
+          argv.proxyAuthUsername,
+          argv.proxyAuthPassword,
+        )
         .withLiveReload(argv.livereload)
         .withUrl(argv.url)
         .withPrintIndex(argv.printIndex)

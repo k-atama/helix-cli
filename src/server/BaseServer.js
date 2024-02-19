@@ -49,6 +49,8 @@ export class BaseServer extends EventEmitter {
     this._sockets = new Set();
     this._proxyPaths = [];
     this._proxyTarget = null;
+    this._proxyUsername = null;
+    this._proxyPassword = null;
   }
 
   /**
@@ -86,9 +88,11 @@ export class BaseServer extends EventEmitter {
     return this;
   }
 
-  withProxyConfig(paths, target) {
+  withProxyConfig(paths, target, username, password) {
     this._proxyPaths = paths;
     this._proxyTarget = target;
+    this._proxyUsername = username;
+    this._proxyPassword = password;
     return this;
   }
 

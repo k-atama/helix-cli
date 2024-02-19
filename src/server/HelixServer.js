@@ -133,6 +133,12 @@ export class HelixServer extends BaseServer {
        * */
       selfHandleResponse: true, // res.end() will be called internally by responseInterceptor()
 
+      onProxyReq: (proxyReq) => {
+        if (this._proxyUsername && this._proxyPassword) {
+          proxyReq.setHeader('Authorization', `Basic ${Buffer.from(`${this._proxyUsername}:${this._proxyPassword}`).toString('base64')}`);
+        }
+      },
+
       /**
        * Intercept response and replace 'Hello' with 'Goodbye'
        * */
@@ -156,12 +162,12 @@ export class HelixServer extends BaseServer {
           res.setHeader('Set-Cookie', newCookie);
         }
 
-        const response = responseBuffer.toString('utf8'); // convert buffer to string
-
         const contentType = res.getHeader('Content-Type');
-        if (contentType.indexOf('application/json') === -1 && contentType.indexOf('text/html') === -1) {
+        if (contentType?.indexOf('application/json') === -1 && contentType.indexOf('text/html') === -1) {
           return responseBuffer;
         }
+
+        const response = responseBuffer.toString('utf8'); // convert buffer to string
 
         // Global flag required when calling replaceAll with regex
         const regex = new RegExp(`${targetProtocol}://${escapedHost}/`, 'gi');
@@ -169,7 +175,7 @@ export class HelixServer extends BaseServer {
         const regex2 = new RegExp(`${targetProtocol}\\\\u003A\\\\u002F\\\\u002F${escapedHost}\\\\u002F`, 'gi');
         const regex3 = new RegExp(`${escapedHost}`, 'gi');
         return response.replaceAll(regex, `${this.scheme}://${this.hostname}:${this.port}/`)
-          .replaceAll(regex1, `${this.scheme}:\\\\/\\\\/${this.hostname}:${this.port}`)
+          .replaceAll(regex1, `${this.scheme}:\\/\\/${this.hostname}:${this.port}`)
           .replaceAll(regex2, `${this.scheme}\u003A\u002F\u002F${this.hostname}:${this.port}\u002F`)
           .replaceAll(regex3, `${this.hostname}:${this.port}`);
       }),
