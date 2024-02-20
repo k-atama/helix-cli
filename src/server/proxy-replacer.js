@@ -25,7 +25,6 @@ export function replaceContent(config, content) {
   const veryEscapedHost = proxyURL.host.replaceAll(/-/g, '\\u002D');
   const veryVeryEscapedHost = proxyURL.host.replaceAll(/-/g, '\\\\u002D');
   const targetProtocol = proxyURL.protocol.replace(':', '');
-  console.log(veryEscapedHost);
   return content.replaceAll(new RegExp(`${targetProtocol}://${escapedHost}/`, 'gi'), `${config.targetScheme}://${config.targetHostname}:${config.targetPort}/`)
     .replaceAll(new RegExp(`${targetProtocol}:\\\\/\\\\/${escapedHost}`, 'gi'), `${config.targetScheme}:\\/\\/${config.targetHostname}:${config.targetPort}`)
     .replaceAll(new RegExp(`${targetProtocol}\\u003A\\u002F\\u002F${escapedHost}\\u002F`, 'gi'), `${config.targetScheme}\u003A\u002F\u002F${config.targetHostname}:${config.targetPort}\u002F`)
