@@ -17,7 +17,7 @@ import utils from './utils.js';
 import RequestContext from './RequestContext.js';
 import { asyncHandler, BaseServer } from './BaseServer.js';
 import LiveReload from './LiveReload.js';
-import { replaceContent } from './proxy-replacer.js';
+import { replaceContent, replaceHeaders } from './proxy-replacer.js';
 
 export class HelixServer extends BaseServer {
   /**
@@ -117,13 +117,13 @@ export class HelixServer extends BaseServer {
 
   createProxyHandlers(pathToProxy, proxyTarget) {
     const proxyURL = new URL(proxyTarget);
-    const escapedHost = proxyURL.host.replaceAll(/\./g, '\\.');
-    const targetProtocol = proxyURL.protocol.replace(':', '');
     // const proxyScheme = proxyURL.host.split('.')[0];
     // const proxyScheme = proxyURL.split('.')[0];
     return createProxyMiddleware(pathToProxy, {
       target: proxyURL.origin,
       changeOrigin: true,
+      cookieDomainRewrite: true,
+      cookiePathRewrite: true,
       router: {
         [`${this.hostname}:${this.port}`]: proxyURL.origin,
 
@@ -144,27 +144,23 @@ export class HelixServer extends BaseServer {
        * Intercept response and replace 'Hello' with 'Goodbye'
        * */
       onProxyRes: responseInterceptor(async (responseBuffer, proxyRes, req, res) => {
-        const location = res.getHeader('Location');
-        if (location) {
-          res.setHeader('Location', location.replace(`${proxyURL.origin}/`, `${this.scheme}://${this.hostname}:${this.port}/`));
-        }
+        const headers = replaceHeaders({
+          proxyHostname: proxyURL.hostname,
+          proxyScheme: proxyURL.protocol.replace(':', ''),
+          proxyPort: proxyURL.port,
+          targetHostname: this.hostname,
+          targetPort: this.port,
+          targetScheme: this.scheme,
+        }, res.getHeaders());
 
-        // replace original url in cookies for error messages
-        const setCookie = res.getHeader('Set-Cookie');
-        if (setCookie && setCookie.length > 0) {
-          const newCookie = setCookie.map((cookieValue) => cookieValue.replaceAll(
-            new RegExp(`${encodeURIComponent(proxyURL.origin.replace('://', ':\\/\\/'))}`, 'g'),
-            `${this.scheme}%3A%5C%2F%5C%2F${this.hostname}:${this.port}`,
-          ).replaceAll(
-            // todo: this should probably be removed as it doesn't account for the scheme
-            new RegExp(`${targetProtocol}://${escapedHost}/`, 'gi'),
-            `${this.scheme}://${this.hostname}:${this.port}/`,
-          ));
-          res.setHeader('Set-Cookie', newCookie);
-        }
+        Object.entries(headers).forEach(([key, value]) => {
+          res.setHeader(key, value);
+        });
 
         const contentType = res.getHeader('Content-Type');
-        if (contentType?.indexOf('application/json') === -1 && contentType.indexOf('text/html') === -1) {
+        if (contentType?.indexOf('application/json') === -1
+          && contentType.indexOf('text/html') === -1
+          && contentType.indexOf('text/css') === -1) {
           return responseBuffer;
         }
 
